@@ -92,6 +92,8 @@ devcontainer features test -f claude-code -p .
 
 or point a throwaway project's `devcontainer.json` at `src/claude-code` via a local path and `devcontainer up` / `devcontainer exec` it.
 
+The same test suite runs in GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) on every push and pull request; publishing to `ghcr.io` only happens after tests pass on `main`.
+
 ## License
 
 [MIT](./LICENSE)
