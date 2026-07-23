@@ -7,5 +7,15 @@
         "allowedDomains": "example.org, example.net"
       }
     }
+  },
+  "oauth_token_via_remote_env": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "remoteUser": "vscode",
+    "remoteEnv": {
+      "CLAUDE_CODE_OAUTH_TOKEN": "test-oauth-token-value"
+    },
+    "features": {
+      "claude-code": {}
+    }
   }
 }

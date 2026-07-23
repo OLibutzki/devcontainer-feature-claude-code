@@ -6,13 +6,7 @@ A [dev container feature](https://containers.dev/implementors/features/) that in
 
 ## Why not the official feature?
 
-Anthropic publishes [`ghcr.io/anthropics/devcontainer-features/claude-code`](https://github.com/anthropics/devcontainer-features), but it's had no commits in over a year and an [open, unanswered question about whether it's deprecated](https://github.com/anthropics/devcontainer-features/issues/26). It also only runs a bare `npm install -g`, leaving three things unsolved for a sandboxed/unattended setup:
-
-1. **Non-interactive login.** Setting `CLAUDE_CODE_OAUTH_TOKEN` alone doesn't skip the onboarding screen in a fresh container — you still need `hasCompletedOnboarding: true` in the Claude config ([claude-code#8938](https://github.com/anthropics/claude-code/issues/8938#issuecomment-3443723851)). This feature sets that automatically on every container start.
-2. **Persisting a browser login across rebuilds, per project.** This feature mounts a named volume keyed by [`${devcontainerId}`](https://containers.dev/implementors/json_reference/#variables-in-devcontainerjson) — stable across rebuilds of the same dev container, different for different projects — with zero devcontainer.json edits required.
-3. **Making `--dangerously-skip-permissions` reasonably safe.** Per the [official docs](https://code.claude.com/docs/en/devcontainer#run-without-permission-prompts), that requires a non-root `remoteUser` (Claude Code refuses to start in bypass mode as root) and benefits from restricted egress. This feature enforces the former and always installs an egress firewall for the latter — it's not optional, since it's the whole point of the sandbox.
-
-**What this feature does *not* do:** choose a permission mode for you. It never sets `permissions.defaultMode`, never wraps `claude` to inject `--dangerously-skip-permissions`, and ships no `settings.json`. It only makes the environment safe enough that *you* can opt into that flag, per session, when you want unattended behavior. Plain `claude` behaves exactly as it would anywhere else.
+Anthropic's [`ghcr.io/anthropics/devcontainer-features/claude-code`](https://github.com/anthropics/devcontainer-features) has major unfixed bugs and no activity in over a year — see [issue #26](https://github.com/anthropics/devcontainer-features/issues/26).
 
 ## Usage
 
@@ -27,21 +21,29 @@ Anthropic publishes [`ghcr.io/anthropics/devcontainer-features/claude-code`](htt
 
 That's it — no Node.js needed (Claude Code's [native installer](https://code.claude.com/docs/en/setup#install-claude-code) doesn't require it), and no `mounts`/`runArgs`/`postStartCommand` boilerplate to hand-write.
 
-Rebuild the container, then either:
+Rebuild the container, then run Claude Code as usual — with a human reviewing actions:
 
 ```bash
-# interactive, with a human reviewing actions
 claude
-
-# unattended: no human at the keyboard, so use headless mode
-claude -p --dangerously-skip-permissions "do the thing"
 ```
 
-Use headless mode (`-p`) for unattended runs specifically: the interactive one-time bypass-permissions warning dialog [only appears in interactive sessions](https://code.claude.com/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode) and would otherwise block a session with nobody there to press Enter. `-p` mode never shows it.
+or, for unattended work, opt into bypassing permission checks:
+
+```bash
+claude --dangerously-skip-permissions
+```
 
 ### Logging in
 
-- **Token-based (recommended for unattended containers):** set `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token` on your host) as a [Codespaces secret](https://docs.github.com/en/codespaces/managing-your-codespaces/managing-your-account-specific-secrets-for-github-codespaces) or in `containerEnv`/your shell before `claude` starts. Onboarding is pre-completed automatically, so it works with no interaction.
+- **Token-based (recommended for unattended containers):** generate a token with `claude setup-token` on your host, then pass it through as `CLAUDE_CODE_OAUTH_TOKEN`. In Codespaces, add it as a [Codespaces secret](https://docs.github.com/en/codespaces/managing-your-codespaces/managing-your-account-specific-secrets-for-github-codespaces) and it's exposed automatically. Otherwise, add this to your `devcontainer.json` so it's read from your host shell rather than hardcoded:
+
+  ```json
+  "remoteEnv": {
+    "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}"
+  }
+  ```
+
+  `remoteEnv` injects it into every terminal/exec session in the container (where `claude` runs) without baking it into the container's persisted config. Onboarding is pre-completed automatically, so it works with no interaction.
 - **Browser login:** just run `claude` and follow the prompt once. The session is stored on the volume this feature mounts, so it survives a rebuild of *this* devcontainer config — you won't need to log in again unless you delete the volume or change the workspace path.
 
 ## The firewall
