@@ -33,6 +33,18 @@
       "description": "On every container start, mark onboarding complete in the Claude config so CLAUDE_CODE_OAUTH_TOKEN / API-key logins skip the interactive theme/setup screen. Does not change or set any permission mode."
     }
   },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code"
+      ]
+    },
+    "jetbrains": {
+      "plugins": [
+        "com.anthropic.code.plugin"
+      ]
+    }
+  },
   "containerEnv": {
     "CLAUDE_CONFIG_DIR": "/home/.claude-code-config"
   },

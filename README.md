@@ -19,7 +19,7 @@ Anthropic's [`ghcr.io/anthropics/devcontainer-features/claude-code`](https://git
 }
 ```
 
-That's it — no Node.js needed (Claude Code's [native installer](https://code.claude.com/docs/en/setup#install-claude-code) doesn't require it), and no `mounts`/`runArgs`/`postStartCommand` boilerplate to hand-write.
+That's it — no Node.js needed (Claude Code's [native installer](https://code.claude.com/docs/en/setup#install-claude-code) doesn't require it), and no `mounts`/`runArgs`/`postStartCommand` boilerplate to hand-write. VS Code (and Codespaces) installs the [Claude Code extension](https://code.claude.com/docs/en/vs-code) automatically; JetBrains IDEs that support dev containers install the [Claude Code plugin](https://code.claude.com/docs/en/jetbrains) the same way. Other editors just ignore this part.
 
 Rebuild the container, then run Claude Code as usual — with a human reviewing actions:
 
