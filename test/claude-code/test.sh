@@ -11,6 +11,13 @@ check "running as non-root" bash -c "[ \"\$(id -u)\" != \"0\" ]"
 check "CLAUDE_CONFIG_DIR is set to the persisted volume target" bash -c "[ \"\$CLAUDE_CONFIG_DIR\" = \"/home/.claude-code-config\" ]"
 check "persisted config dir exists and is owned by the remote user" bash -c "[ -d /home/.claude-code-config ] && [ \"\$(stat -c %U /home/.claude-code-config)\" = \"\$(whoami)\" ]"
 
+check "fix-config-permissions script installed" bash -c "[ -x /usr/local/bin/claude-code-fix-config-permissions.sh ]"
+check "fix-config-permissions restores ownership even if a fresh volume mounted root-owned" bash -c "
+  sudo chown -R root /home/.claude-code-config &&
+  sudo /usr/local/bin/claude-code-fix-config-permissions.sh &&
+  [ \"\$(stat -c %U /home/.claude-code-config)\" = \"\$(whoami)\" ]
+"
+
 check "start script installed" bash -c "[ -x /usr/local/bin/claude-code-start.sh ]"
 check "onboarding-init script installed" bash -c "[ -x /usr/local/bin/claude-code-onboarding-init.sh ]"
 check "auto-onboarding defaults to true" bash -c "[ \"\$(cat /usr/local/etc/claude-code/auto-onboarding)\" = \"true\" ]"

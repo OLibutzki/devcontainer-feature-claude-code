@@ -76,6 +76,7 @@ chmod 700 "$CONTAINER_CLAUDE_CONFIG_DIR"
 
 echo "== claude-code: installing runtime scripts =="
 install -m 0755 "$SCRIPT_DIR/scripts/claude-code-start.sh" /usr/local/bin/claude-code-start.sh
+install -m 0755 "$SCRIPT_DIR/scripts/claude-code-fix-config-permissions.sh" /usr/local/bin/claude-code-fix-config-permissions.sh
 install -m 0755 "$SCRIPT_DIR/scripts/claude-code-onboarding-init.sh" /usr/local/bin/claude-code-onboarding-init.sh
 install -m 0755 "$SCRIPT_DIR/scripts/claude-code-autoupdate-init.sh" /usr/local/bin/claude-code-autoupdate-init.sh
 
@@ -102,7 +103,7 @@ install -m 0755 "$SCRIPT_DIR/scripts/claude-code-init-firewall.sh" /usr/local/bi
   fi
 } >"$CONFIG_DIR/allowed-domains.txt"
 
-echo "$_REMOTE_USER ALL=(root) NOPASSWD: /usr/local/bin/claude-code-init-firewall.sh" >/etc/sudoers.d/claude-code-firewall
+echo "$_REMOTE_USER ALL=(root) NOPASSWD: /usr/local/bin/claude-code-init-firewall.sh, /usr/local/bin/claude-code-fix-config-permissions.sh" >/etc/sudoers.d/claude-code-firewall
 chmod 0440 /etc/sudoers.d/claude-code-firewall
 
 echo "== claude-code: install.sh complete =="
