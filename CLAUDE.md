@@ -41,7 +41,7 @@ To try it manually end-to-end (e.g. to check real browser-login persistence, whi
 Everything happens in two phases, because Docker image builds and container starts are different contexts with different available information (env vars set on the *running* container, like `CLAUDE_CODE_OAUTH_TOKEN`, aren't visible during image build):
 
 - **`src/claude-code/install.sh`** — runs once as root during image build. Installs OS packages, runs the Claude Code native installer *as the non-root remote user* (`su - "$_REMOTE_USER" -c ...`, since the installer writes to that user's `$HOME`), symlinks the binary to `/usr/local/bin/claude`, and drops the runtime scripts (below) plus their config into place. It does not touch anything that needs to react to runtime state.
-- **`src/claude-code/scripts/claude-code-start.sh`** — the feature's `postStartCommand` (declared in `devcontainer-feature.json`, so it merges automatically with anything the consumer's own `devcontainer.json` defines — no user wiring required). Runs as the remote user on every container start, including after a rebuild. It re-applies the firewall (needs `sudo`, granted via a narrowly-scoped `NOPASSWD` sudoers entry install.sh writes) and conditionally runs the onboarding-fixup script based on a flag file (`/usr/local/etc/claude-code/auto-onboarding`) install.sh wrote from the `autoOnboarding` option.
+- **`src/claude-code/scripts/claude-code-start.sh`** — the feature's `postStartCommand` (declared in `devcontainer-feature.json`, so it merges automatically with anything the consumer's own `devcontainer.json` defines — no user wiring required). Runs as the remote user on every container start, including after a rebuild. It re-applies the firewall (needs `sudo`, granted via a narrowly-scoped `NOPASSWD` sudoers entry install.sh writes), conditionally runs the onboarding-fixup script based on a flag file (`/usr/local/etc/claude-code/auto-onboarding`) install.sh wrote from the `autoOnboarding` option, and syncs the auto-updater's disabled/enabled state (see below).
 
 ### Firewall (`claude-code-init-firewall.sh`)
 
@@ -59,16 +59,22 @@ The mount target is a fixed path, not the remote user's actual home directory, b
 
 Sets `hasCompletedOnboarding: true` via `jq` (a safe, non-destructive merge — never overwrites the rest of the file) so a `CLAUDE_CODE_OAUTH_TOKEN`/API-key login doesn't hit Claude Code's interactive theme/setup screen. It patches **both** `$HOME/.claude.json` and `$CLAUDE_CONFIG_DIR/.claude.json` defensively: Claude Code's docs are ambiguous about whether `CLAUDE_CONFIG_DIR` relocates `~/.claude.json` (which holds the OAuth session) or only the `~/.claude` directory, so this covers both possibilities rather than guessing. If you ever confirm definitively which one Claude Code actually uses, this can be simplified to a single path.
 
+### Auto-update pinning (`claude-code-autoupdate-init.sh`)
+
+`version: latest`/`stable` are Claude Code's own release channels and are left to update (background and manual) as normal. An exact version pin is different: `install.sh` writes `true`/`false` to `/usr/local/etc/claude-code/disable-autoupdater` based on whether `version` matched `latest`/`stable`/empty (`false`) or something else (`true`), and this script reads that flag on every start to keep `env.DISABLE_UPDATES` in `settings.json` in sync — set to `"1"` when pinned, removed (no-op `jq del` if it was never there) when not. `DISABLE_UPDATES` rather than `DISABLE_AUTOUPDATER`: the latter only silences the background check, but `claude update`/`claude install` would still work manually and could move a deliberately pinned container past the version this option asked for. This runtime sync, not a one-time install-time write, matters because the persisted config volume can outlive a single build: if someone rebuilds with `version` changed back to `latest`/`stable`, a stale `DISABLE_UPDATES=1` from a previous pinned build would otherwise silently linger in the volume. Same defensive dual-path pattern (`$HOME/.claude/settings.json` and `$CLAUDE_CONFIG_DIR/settings.json`) as the onboarding fixup, for the same reason.
+
+This is the one case where the feature ships a `settings.json` — see the note below on why that doesn't conflict with the "never touches permission mode" rule.
+
 ### Non-root enforcement
 
 `install.sh` hard-fails immediately if `$_REMOTE_USER` is `root`, with an explanatory message, rather than silently installing into a configuration that Claude Code itself would refuse to run `--dangerously-skip-permissions` in later. This is why `test.sh`/scenarios in `test/claude-code/` must always pass `-u <non-root-user>` (or set `remoteUser` in a scenario) — the CLI's default synthetic test container otherwise uses `root`.
 
 ### What this feature deliberately never does
 
-No `permissions.defaultMode`, no `settings.json`, no wrapper around `claude` that injects `--dangerously-skip-permissions`. The feature's job is to make the container *safe* for that flag (non-root user + firewall + working auth), never to choose it. Keep new features/scripts consistent with this — anything that would make a permission mode automatic belongs in the consumer's own config, not here.
+No `permissions.defaultMode`, no wrapper around `claude` that injects `--dangerously-skip-permissions`. The feature's job is to make the container *safe* for that flag (non-root user + firewall + working auth), never to choose it. The one `settings.json` key this feature ever writes is `env.DISABLE_UPDATES` (only when `version` is pinned, see above) — never a `permissions` key. Keep new features/scripts consistent with this — anything that would make a permission mode automatic belongs in the consumer's own config, not here.
 
 ## Testing conventions
 
 - `test/claude-code/test.sh` is the "default options" test, run automatically (the "autogenerated" test) against whatever image/user `-i`/`-u` specify.
-- `test/claude-code/scenarios.json` defines named scenarios (currently `custom_allowed_domains`); each key needs a matching `test/claude-code/<name>.sh` script, and each scenario's own `image`/`remoteUser` (not the CLI's `-i`/`-u` flags) apply to it.
+- `test/claude-code/scenarios.json` defines named scenarios (`custom_allowed_domains`, `oauth_token_via_remote_env`, `pinned_version`); each key needs a matching `test/claude-code/<name>.sh` script, and each scenario's own `image`/`remoteUser` (not the CLI's `-i`/`-u` flags) apply to it.
 - Test scripts use the devcontainer CLI's `dev-container-features-test-lib` (`check "description" <command>` + `reportResults` at the end).

@@ -72,6 +72,10 @@ Nothing else — no GitHub, no npm/PyPI/other registries, no VS Code Server host
 | `allowedDomains` | string | `""` | Comma-separated extra domains to allow through the always-on firewall. |
 | `autoOnboarding` | boolean | `true` | Auto-complete onboarding on every container start so token/API-key logins don't hit the interactive setup screen. Purely cosmetic/UX — never touches permission modes. |
 
+`latest` and `stable` are Claude Code's own [release channels](https://code.claude.com/docs/en/setup#configure-release-channel), not something this feature defines: `latest` installs every release as soon as it ships, `stable` installs a version that's typically about a week old and skips releases with major regressions. On either channel, the native installer keeps [auto-updating in the background](https://code.claude.com/docs/en/setup#auto-updates) afterward, so the container tracks new releases on that channel over time — this is intentional, not something you need to work around.
+
+An exact version (e.g. `2.1.89`) is different: this feature automatically sets [`DISABLE_UPDATES`](https://code.claude.com/docs/en/env-vars) in that case, blocking both background and manual (`claude update`) updates, so the pin actually sticks instead of silently drifting past the version you asked for. Switching `version` back to `latest`/`stable` on a later rebuild re-enables updates again.
+
 ## How persistence works
 
 The feature sets `CLAUDE_CONFIG_DIR=/home/.claude-code-config` and mounts a named volume, `claude-code-config-${devcontainerId}`, at that path — both declared inside the feature itself, so no changes to your `devcontainer.json` are needed. `${devcontainerId}` is stable across rebuilds of the same dev container config/workspace and differs between projects, which is exactly the "same project, new container" persistence this was built for.

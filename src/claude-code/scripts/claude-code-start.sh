@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # postStartCommand entrypoint installed by this feature. Runs as the
 # container's remote user on every container start (including after a
-# rebuild). Does two things, neither of which touches Claude Code's
+# rebuild). Does three things, none of which touches Claude Code's
 # permission mode:
 #   1. (re-)apply the always-on egress firewall
 #   2. mark onboarding complete, if enabled
+#   3. sync the auto-updater's disabled/enabled state with whether
+#      `version` is pinned to an exact release
 set -euo pipefail
 
 sudo /usr/local/bin/claude-code-init-firewall.sh
@@ -13,3 +15,5 @@ if [ "$(cat /usr/local/etc/claude-code/auto-onboarding 2>/dev/null || echo false
   && [ -x /usr/local/bin/claude-code-onboarding-init.sh ]; then
   /usr/local/bin/claude-code-onboarding-init.sh
 fi
+
+/usr/local/bin/claude-code-autoupdate-init.sh

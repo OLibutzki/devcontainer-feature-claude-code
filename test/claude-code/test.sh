@@ -26,6 +26,12 @@ check "onboarding-init is idempotent and sets hasCompletedOnboarding" bash -c "
   jq -e '.hasCompletedOnboarding == true' \"\$CLAUDE_CONFIG_DIR/.claude.json\"
 "
 
-check "no permission-mode settings are shipped by this feature" bash -c "[ ! -e \"\$HOME/.claude/settings.json\" ]"
+check "autoupdate-init script installed" bash -c "[ -x /usr/local/bin/claude-code-autoupdate-init.sh ]"
+check "auto-update stays enabled by default (version is not pinned)" bash -c "[ \"\$(cat /usr/local/etc/claude-code/disable-autoupdater)\" = \"false\" ]"
+check "no settings.json is shipped when version isn't pinned (and none touches permission mode)" bash -c "
+  /usr/local/bin/claude-code-autoupdate-init.sh &&
+  [ ! -e \"\$HOME/.claude/settings.json\" ] &&
+  [ ! -e \"\$CLAUDE_CONFIG_DIR/settings.json\" ]
+"
 
 reportResults

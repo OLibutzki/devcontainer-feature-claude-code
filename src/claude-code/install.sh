@@ -42,9 +42,22 @@ fi
 
 echo "== claude-code: installing Claude Code (native installer) as $_REMOTE_USER =="
 INSTALL_CMD="curl -fsSL https://claude.ai/install.sh | bash"
+# "latest"/"stable" are Claude Code's own release channels: leave updates
+# alone so the container keeps tracking that channel. Anything else is an
+# exact pin, so updates (background AND manual) get disabled (see
+# claude-code-autoupdate-init.sh) -- otherwise the pin wouldn't stick.
+PINNED="true"
 case "$VERSION" in
-latest | "") ;;
-*) INSTALL_CMD="$INSTALL_CMD -s $VERSION" ;;
+latest | "")
+  PINNED="false"
+  ;;
+stable)
+  INSTALL_CMD="$INSTALL_CMD -s stable"
+  PINNED="false"
+  ;;
+*)
+  INSTALL_CMD="$INSTALL_CMD -s $VERSION"
+  ;;
 esac
 
 su - "$_REMOTE_USER" -c "$INSTALL_CMD"
@@ -64,9 +77,11 @@ chmod 700 "$CONTAINER_CLAUDE_CONFIG_DIR"
 echo "== claude-code: installing runtime scripts =="
 install -m 0755 "$SCRIPT_DIR/scripts/claude-code-start.sh" /usr/local/bin/claude-code-start.sh
 install -m 0755 "$SCRIPT_DIR/scripts/claude-code-onboarding-init.sh" /usr/local/bin/claude-code-onboarding-init.sh
+install -m 0755 "$SCRIPT_DIR/scripts/claude-code-autoupdate-init.sh" /usr/local/bin/claude-code-autoupdate-init.sh
 
 mkdir -p "$CONFIG_DIR"
 echo "$AUTOONBOARDING" >"$CONFIG_DIR/auto-onboarding"
+echo "$PINNED" >"$CONFIG_DIR/disable-autoupdater"
 
 echo "== claude-code: installing firewall =="
 install -m 0755 "$SCRIPT_DIR/scripts/claude-code-init-firewall.sh" /usr/local/bin/claude-code-init-firewall.sh

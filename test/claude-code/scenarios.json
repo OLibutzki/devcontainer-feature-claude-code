@@ -17,5 +17,14 @@
     "features": {
       "claude-code": {}
     }
+  },
+  "pinned_version": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "remoteUser": "vscode",
+    "features": {
+      "claude-code": {
+        "version": "2.1.218"
+      }
+    }
   }
 }
