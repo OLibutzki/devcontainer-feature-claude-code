@@ -1,0 +1,51 @@
+{
+  "id": "claude-code",
+  "version": "0.0.1",
+  "name": "Claude Code",
+  "description": "Installs Claude Code via the official native installer and makes the container a safe place to opt into --dangerously-skip-permissions: automatic non-interactive login (CLAUDE_CODE_OAUTH_TOKEN respected, onboarding auto-completed), browser-login credentials persisted across rebuilds for the same project, and an always-on default-deny egress firewall. Experimental: expect breaking changes on the 0.x line.",
+  "documentationURL": "https://github.com/olibutzki/devcontainer-feature-claude-code",
+  "licenseURL": "https://github.com/olibutzki/devcontainer-feature-claude-code/blob/main/LICENSE",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "anthropic",
+    "ai",
+    "sandbox"
+  ],
+  "options": {
+    "version": {
+      "type": "string",
+      "proposals": [
+        "latest",
+        "stable"
+      ],
+      "default": "latest",
+      "description": "Claude Code version to install: 'latest', 'stable', or an exact version such as 2.1.89. Passed to the native installer."
+    },
+    "allowedDomains": {
+      "type": "string",
+      "default": "",
+      "description": "Comma-separated extra domains to allow through the always-on egress firewall, e.g. for your project's own package registries or git hosts (pypi.org,files.pythonhosted.org,github.com,...)."
+    },
+    "autoOnboarding": {
+      "type": "boolean",
+      "default": true,
+      "description": "On every container start, mark onboarding complete in the Claude config so CLAUDE_CODE_OAUTH_TOKEN / API-key logins skip the interactive theme/setup screen. Does not change or set any permission mode."
+    }
+  },
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/.claude-code-config"
+  },
+  "mounts": [
+    {
+      "source": "claude-code-config-${devcontainerId}",
+      "target": "/home/.claude-code-config",
+      "type": "volume"
+    }
+  ],
+  "capAdd": [
+    "NET_ADMIN",
+    "NET_RAW"
+  ],
+  "postStartCommand": "/usr/local/bin/claude-code-start.sh"
+}

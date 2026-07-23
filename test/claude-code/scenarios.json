@@ -1,0 +1,11 @@
+{
+  "custom_allowed_domains": {
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "remoteUser": "vscode",
+    "features": {
+      "claude-code": {
+        "allowedDomains": "example.org, example.net"
+      }
+    }
+  }
+}
